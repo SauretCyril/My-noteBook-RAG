@@ -1,0 +1,32 @@
+[
+  {
+    "chunk_link": "https://docs.anthropic.com/en/docs/welcome#get-started",
+    "chunk_heading": "Get started",
+    "text": "Get started\n\n\nIf you\u2019re new to Claude, start here to learn the essentials and make your first API call.\nIntro to ClaudeExplore Claude\u2019s capabilities and development flow.QuickstartLearn how to make your first API call in minutes.Prompt LibraryExplore example prompts for inspiration.\nIntro to ClaudeExplore Claude\u2019s capabilities and development flow.\n\nIntro to Claude\nExplore Claude\u2019s capabilities and development flow.\nQuickstartLearn how to make your first API call in minutes.\n\nQuickstart\nLearn how to make your first API call in minutes.\nPrompt LibraryExplore example prompts for inspiration.\n\nPrompt Library\nExplore example prompts for inspiration.\n",
+    "summary": "The documentation covers getting started with Anthropic's Claude AI model, including an introduction to its capabilities, a quickstart guide for making API calls, and a prompt library for inspiration. It provides essential information for users new to Claude to learn the basics and start using the model."
+  },
+  {
+    "chunk_link": "https://docs.anthropic.com/en/docs/welcome#models",
+    "chunk_heading": "Models",
+    "text": "Models\n\n\nClaude consists of a family of large language models that enable you to balance intelligence, speed, and cost.\n\n\n\n\n\nCompare our state-of-the-art models.\n",
+    "summary": "Claude consists of a family of large language models that enable balancing intelligence, speed, and cost. Anthropic provides state-of-the-art models that can be compared to find the best fit for your needs."
+  },
+  {
+    "chunk_link": "https://docs.anthropic.com/en/docs/welcome#develop-with-claude",
+    "chunk_heading": "Develop with Claude",
+    "text": "Develop with Claude\n\n\nAnthropic has best-in-class developer tools to build scalable applications with Claude.\nDeveloper ConsoleEnjoy easier, more powerful prompting in your browser with the Workbench and prompt generator tool.API ReferenceExplore, implement, and scale with the Anthropic API and SDKs.Anthropic CookbookLearn with interactive Jupyter notebooks that demonstrate uploading PDFs, embeddings, and more.\nDeveloper ConsoleEnjoy easier, more powerful prompting in your browser with the Workbench and prompt generator tool.\n\nDeveloper Console\nEnjoy easier, more powerful prompting in your browser with the Workbench and prompt generator tool.\nAPI ReferenceExplore, implement, and scale with the Anthropic API and SDKs.\n\nAPI Reference\nExplore, implement, and scale with the Anthropic API and SDKs.\nAnthropic CookbookLearn with interactive Jupyter notebooks that demonstrate uploading PDFs, embeddings, and more.\n\nAnthropic Cookbook\nLearn with interactive Jupyter notebooks that demonstrate uploading PDFs, embeddings, and more.\n",
+    "summary": "Anthropic provides a suite of developer tools, including a browser-based Workbench and prompt generator, API reference documentation, and interactive Jupyter notebooks, to help developers build scalable applications with the Claude AI model. These tools enable easier, more powerful prompting, exploration and implementation of the Anthropic API and SDKs, and learning through interactive demonstrations."
+  },
+  {
+    "chunk_link": "https://docs.anthropic.com/en/docs/welcome#key-capabilities",
+    "chunk_heading": "Key capabilities",
+    "text": "Key capabilities\n\n\nClaude can assist with many tasks that involve text, code, and images.\nText and code generationSummarize text, answer questions, extract data, translate text, and explain and generate code.VisionProcess and analyze visual input and generate text and code from images.\nText and code generationSummarize text, answer questions, extract data, translate text, and explain and generate code.\n\nText and code generation\nSummarize text, answer questions, extract data, translate text, and explain and generate code.\nVisionProcess and analyze visual input and generate text and code from images.\n\nVision\nProcess and analyze visual input and generate text and code from images.\n",
+    "summary": "Claude can assist with text and code generation tasks such as summarizing text, answering questions, extracting data, translating text, and explaining and generating code. It can also process and analyze visual input, and generate text and code from images."
+  },
+  {
+    "chunk_link": "https://docs.anthropic.com/en/docs/welcome#support",
+    "chunk_heading": "Support",
+    "text": "Support\n\n\nHelp CenterFind answers to frequently asked account and billing questions.Service StatusCheck the status of Anthropic services.\nHelp CenterFind answers to frequently asked account and billing questions.\n\nHelp Center\nFind answers to frequently asked account and billing questions.\nService StatusCheck the status of Anthropic services.\n\nService Status\nCheck the status of Anthropic services.\nQuickstartxlinkedin\nQuickstart\nxlinkedin\nGet started Models Develop with Claude Key capabilities Support\nGet startedModelsDevelop with ClaudeKey capabilitiesSupport\n",
+    "summary": "The documentation provides support resources for Anthropic's Claude AI model, including a Help Center for account and billing questions, and a Service Status page to check the status of Anthropic's services. It also outlines the key sections of the documentation, such as getting started, model capabilities, and development tools."
+  }
+]
