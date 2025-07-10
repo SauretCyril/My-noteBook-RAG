@@ -1357,7 +1357,7 @@ def show_images_gallery():
                         # Afficher l'image
                         if os.path.exists(img_data['image_path']):
                             image = Image.open(img_data['image_path'])
-                            st.image(image, use_column_width=True)
+                            st.image(image, use_container_width=True)
                         else:
                             st.write("❌ Image non trouvée")
                         
@@ -1457,7 +1457,7 @@ def show_images_gallery():
                         # Afficher l'image
                         if os.path.exists(img_data['image_path']):
                             image = Image.open(img_data['image_path'])
-                            st.image(image, use_column_width=True)
+                            st.image(image, use_container_width=True)
                         else:
                             st.write("❌ Image non trouvée")
                         
