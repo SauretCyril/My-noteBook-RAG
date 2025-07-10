@@ -1,0 +1,7 @@
+-r base.txt
+pillow>=9.0.0
+pytesseract>=0.3.10
+opencv-python>=4.8.0
+transformers>=4.30.0
+torch>=2.0.0
+torchvision>=0.15.0
