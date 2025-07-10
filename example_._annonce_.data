@@ -1,0 +1,16 @@
+{
+    "title": "Projet RAG - Documentation Technique",
+    "category": "Documentation",
+    "project": "Système RAG",
+    "author": "Équipe Développement",
+    "description": "Ce dossier contient toute la documentation technique du système RAG, incluant les guides d'installation, les manuels d'utilisation et les spécifications techniques.",
+    "tags": "documentation,technique,rag,ia,streamlit",
+    "date": "2024-07-09",
+    "type": "documentation",
+    "priority": "high",
+    "status": "active",
+    "version": "1.0",
+    "language": "français",
+    "target_audience": "développeurs,utilisateurs",
+    "confidentiality": "public"
+}
