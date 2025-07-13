@@ -903,7 +903,7 @@ def _analyze_list_request(question: str, relevant_docs: List[Dict]) -> Optional[
         
         # Projets
         (r'(liste|énumère|cite|quels?) .*projets', 'projets'),
-        (r'(quels? projets).*(réalis|fait|participé)', 'projets'),
+        (r'quels? projets.*réalis|fait|participé', 'projets'),
         
         # Documents généraux
         (r'(liste|énumère|cite|quels?) .*documents', 'documents')
@@ -1288,7 +1288,8 @@ def _extract_company_list_exhaustive() -> str:
                     for match in matches:
                         # Filtrer pour garder seulement ce qui ressemble à des entreprises
                         if (len(match) > 3 and 
-                            not match.lower() in ['cv', 'lm', 'lettre', 'motivation', 'data', 'new', 'doc', 'pdf', 'actions', 'cyril', 'sauret', 'entreprendre'] and
+                            not match.lower() in ['cv', 'lm', 'lettre', 'motivation', 'data', 'new', 'doc', 'pdf', 'actions'] and
+                            not match.lower().startswith('cyril') and
                             not re.match(r'^[A-Z]\d+$', match) and  # Éviter les codes projets
                             any(c.isupper() for c in match)):  # Au moins une majuscule
                             is_application = True
@@ -1308,10 +1309,64 @@ def _extract_company_list_exhaustive() -> str:
         
         if not candidature_docs:
             return "❌ Aucun document de candidature trouvé dans la base vectorielle."
-        
-        # Maintenant utiliser la fonction existante avec les docs filtrés
-        return _extract_company_list(candidature_docs)
-        
+
+        # Extraire la liste des entreprises (détails)
+        companies = {}
+        for doc in candidature_docs:
+            metadata = doc.get('metadata', {})
+            source = metadata.get('source', '')
+            content = doc.get('content', doc.get('text', ''))
+            company_name = metadata.get('entreprise', '')
+            if not company_name or company_name == 'N/A':
+                company_name = metadata.get('company', metadata.get('enterprise', ''))
+            project = metadata.get('project', '')
+            todo = metadata.get('todo', '')
+            if company_name and company_name != 'N/A' and len(company_name) > 2:
+                company_key = company_name
+                if company_key not in companies:
+                    companies[company_key] = {
+                        'nom': company_name,
+                        'postes': [],
+                        'statut_candidature': 'Non défini',
+                        'etape_actuelle': '',
+                        'sources': [],
+                        'dates': [],
+                        'projets': [],
+                        'details_todo': todo
+                    }
+                if source:
+                    source_name = os.path.basename(source)
+                    if source_name not in companies[company_key]['sources']:
+                        companies[company_key]['sources'].append(source_name)
+                if project and project not in companies[company_key]['projets']:
+                    companies[company_key]['projets'].append(project)
+                title = metadata.get('title', '')
+                if title and 'cv' not in title.lower() and title not in companies[company_key]['postes']:
+                    companies[company_key]['postes'].append(title)
+                date = metadata.get('date', '')
+                if date and date != 'N/A' and date not in companies[company_key]['dates']:
+                    companies[company_key]['dates'].append(date)
+
+        import streamlit as st
+        st.markdown(f"🏢 **LISTE DES ENTREPRISES** ({len(companies)} trouvées)")
+        for i, (company_key, details) in enumerate(sorted(companies.items()), 1):
+            # Ligne compacte
+            with st.expander(f"{i}. {details['nom']}  |  {details['statut_candidature']}  |  {details['etape_actuelle']}"):
+                st.write(f"**Statut:** {details['statut_candidature']}")
+                if details['etape_actuelle']:
+                    st.write(f"**Étape:** {details['etape_actuelle']}")
+                if details['postes']:
+                    st.write(f"**Postes:** {', '.join(details['postes'])}")
+                if details['dates']:
+                    st.write(f"**Dernière activité:** {max(details['dates'])}")
+                if details['projets']:
+                    st.write(f"**Projets associés:** {', '.join(details['projets'])}")
+                if details['sources']:
+                    st.write(f"**Documents:** {len(details['sources'])} fichiers")
+                if details['details_todo'] and details['details_todo'].strip():
+                    st.write(f"**Todo:** {details['details_todo']}")
+        return ""
+    
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
@@ -1339,7 +1394,8 @@ def _extract_company_from_project_code(source: str, content: str = "") -> str:
             if (len(match) > 2 and 
                 not match.lower() in ['cv', 'lm', 'lettre', 'motivation', 'data', 'new', 'doc', 'pdf', 'actions'] and
                 not match.lower().startswith('cyril') and
-                not re.match(r'^[A-Z]\d+$', match)):  # Éviter les codes projets
+                not re.match(r'^[A-Z]\d+$', match) and  # Éviter les codes projets
+                any(c.isupper() for c in match)):  # Au moins une majuscule
                 return match.strip()
     
     # 2. Extraire depuis le contenu avec des patterns génériques
@@ -1373,4 +1429,42 @@ def _extract_company_from_project_code(source: str, content: str = "") -> str:
     
     return ""
 
-# ...existing code...
+def _extract_project_list(relevant_docs: list) -> str:
+    """Affiche une liste compacte des projets extraits des documents pertinents."""
+    import streamlit as st
+    projects = {}
+    for doc in relevant_docs:
+        metadata = doc.get('metadata', {})
+        project = metadata.get('project', '')
+        if project and project != 'N/A':
+            if project not in projects:
+                projects[project] = {
+                    'count': 0,
+                    'categories': set(),
+                    'authors': set(),
+                    'dates': set(),
+                    'sources': set()
+                }
+            projects[project]['count'] += 1
+            category = metadata.get('category', '')
+            if category:
+                projects[project]['categories'].add(category)
+            author = metadata.get('author', '')
+            if author:
+                projects[project]['authors'].add(author)
+            date = metadata.get('date', '')
+            if date:
+                projects[project]['dates'].add(date)
+            source = metadata.get('source', '')
+            if source:
+                projects[project]['sources'].add(source)
+    if not projects:
+        return "❌ Aucun projet trouvé dans les documents consultés."
+    st.markdown(f"📂 **LISTE DES PROJETS** ({len(projects)} trouvés)")
+    for i, (project, details) in enumerate(sorted(projects.items()), 1):
+        with st.expander(f"{i}. {project}  |  {details['count']} documents"):
+            st.write(f"**Catégories:** {', '.join(details['categories']) if details['categories'] else 'N/A'}")
+            st.write(f"**Auteurs:** {', '.join(details['authors']) if details['authors'] else 'N/A'}")
+            st.write(f"**Dates:** {', '.join(details['dates']) if details['dates'] else 'N/A'}")
+            st.write(f"**Sources:** {', '.join(details['sources']) if details['sources'] else 'N/A'}")
+    return ""
