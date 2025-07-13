@@ -101,17 +101,19 @@ def _show_documents_list(vector_db) -> None:
     with col1:
         filter_category = st.selectbox(
             "Filtrer par catégorie",
-            ["Toutes"] + vector_db.get_categories()
+            ["Toutes"] + vector_db.get_categories(),
+            key="filter_category"
         )
         
     with col2:
         filter_project = st.selectbox(
             "Filtrer par projet",
-            ["Tous"] + vector_db.get_projects()
+            ["Tous"] + vector_db.get_projects(),
+            key="filter_project"
         )
         
     with col3:
-        search_term = st.text_input("Rechercher dans le titre/contenu")
+        search_term = st.text_input("Rechercher dans le titre/contenu", key="search_term")
     
     # Filtrer les documents
     filtered_docs = vector_db.documents.copy()
@@ -146,7 +148,8 @@ def _show_documents_list(vector_db) -> None:
         page = st.selectbox(
             "Page",
             range(1, total_pages + 1),
-            format_func=lambda x: f"Page {x}/{total_pages}"
+            format_func=lambda x: f"Page {x}/{total_pages}",
+            key="page_selector"
         )
         start_idx = (page - 1) * page_size
         end_idx = start_idx + page_size
@@ -172,11 +175,11 @@ def _show_documents_list(vector_db) -> None:
             # Contenu
             text = doc.get('text', '')
             if len(text) > 500:
-                st.text_area("Contenu (aperçu):", text[:500] + "...", height=100)
+                st.text_area("Contenu (aperçu):", text[:500] + "...", height=100, key=f"preview_{i}")
                 if st.button(f"Voir le contenu complet {i}", key=f"full_content_{i}"):
-                    st.text_area("Contenu complet:", text, height=300)
+                    st.text_area("Contenu complet:", text, height=300, key=f"full_{i}")
             else:
-                st.text_area("Contenu:", text, height=100)
+                st.text_area("Contenu:", text, height=100, key=f"content_{i}")
             
             # Actions sur le document
             col1, col2 = st.columns(2)

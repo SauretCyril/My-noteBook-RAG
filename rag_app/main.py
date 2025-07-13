@@ -13,12 +13,12 @@ st.set_page_config(
 )
 
 # Import des modules internes
-from .config.settings import STREAMLIT_CONFIG
-from .core.vector_database import VectorDatabase
-from .ui.components.sidebar import Sidebar
-from .ui.pages import (
+from rag_app.config.settings import STREAMLIT_CONFIG
+from rag_app.core.vector_database import VectorDatabase
+from rag_app.ui.components.sidebar import Sidebar
+from rag_app.ui.pages import (
     home, database_management, batch_processing, 
-    search, gallery
+    projects_categories, search, gallery, chat_rag
 )
 
 def main():
@@ -33,6 +33,8 @@ def main():
         {"id": "home", "label": "🏠 Accueil"},
         {"id": "database", "label": "🗃️ Gestion de la Base"},
         {"id": "batch", "label": "📁 Traitement par Lots"},
+        {"id": "projects", "label": "📂 Projets & Catégories"},
+        {"id": "chat", "label": "💬 Chat RAG"},
         {"id": "search", "label": "🔍 Recherche Avancée"},
         {"id": "gallery", "label": "🖼️ Galerie d'Images"}
     ]
@@ -55,6 +57,10 @@ def main():
         database_management.show()
     elif current_page == "batch":
         batch_processing.show()
+    elif current_page == "projects":
+        projects_categories.show()
+    elif current_page == "chat":
+        chat_rag.show()
     elif current_page == "search":
         search.show()
     elif current_page == "gallery":
