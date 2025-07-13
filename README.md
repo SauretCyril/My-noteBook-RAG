@@ -1,29 +1,33 @@
-# 🤖 RAG Knowledge Base Manager - Version Professionnelle
+# 🤖 RAG Knowledge Assistant
 
-Système RAG (Retrieval-Augmented Generation) professionnel pour la gestion documentaire avec interface Streamlit moderne et architecture modulaire.
+**Assistant intelligent basé sur RAG (Retrieval Augmented Generation) pour analyser vos documents et répondre à vos questions.**
 
-## 🚀 Démarrage Rapide
+![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![Streamlit](https://img.shields.io/badge/Framework-Streamlit-red.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-### Lancement de l'Application v2.0 (Recommandé)
+## ✨ Fonctionnalités
+
+- 📄 **Analyse de documents** : PDF, DOC, TXT, JSON
+- 🔍 **Recherche intelligente** : Recherche vectorielle avec TF-IDF
+- 💬 **Chat interactif** : Interface conversationnelle avec Mistral AI
+- 📊 **Extraction de listes** : Génération automatique de listes (entreprises, compétences, projets)
+- 🎯 **Détection de candidatures** : Analyse spécialisée pour les recherches d'emploi
+- 🧹 **Traitement par lots** : Import massif de documents
+
+## 🚀 Démarrage rapide
+
+### Lancement simple
 ```bash
-# Nouvelle version avec architecture professionnelle
-launch_rag_v2_app.bat
-# Ou directement : streamlit run app.py --server.port 8503
+# Sur Windows (Recommandé)
+start.bat
+
+# Alternative directe
+python app.py
 ```
 
-### Applications Héritées (Compatibilité)
-```bash
-# Application principale originale
-launch_rag_app.bat
-
-# Traitement par lots avec vision
-launch_batch_app.bat
-
-# Application vision spécialisée  
-launch_vision_app.bat
-```
-
-## 🏗️ Architecture v2.0
+### Accès à l'application
+Ouvrez votre navigateur : **http://localhost:8501**
 
 ```
 rag_app/                          # 📦 Package principal
