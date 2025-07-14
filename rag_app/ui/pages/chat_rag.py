@@ -5,6 +5,7 @@ import json
 import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+import re
 
 # Charger les variables d'environnement
 try:
@@ -198,12 +199,13 @@ def _show_chat_interface(vector_db) -> None:
     # Afficher l'historique de chat
     _display_chat_history()
 
-def _process_question(question: str, vector_db) -> None:
+def _process_question(question: str, vector_db):
     """Traite une question utilisateur."""
     
     try:
         # 1. Recherche de documents pertinents avec debug
         with st.spinner("🔍 Recherche dans les documents..."):
+            # Recherche vectorielle
             relevant_docs = vector_db.search(question, top_k=5)
         
         # DEBUG: Afficher les informations de recherche
@@ -317,7 +319,6 @@ def _process_question(question: str, vector_db) -> None:
         # 2.5 Analyse intelligente d'existence de projet
         project_analysis = _analyze_project_existence(question, relevant_docs)
         if project_analysis:
-            # Si on détecte une question sur l'existence d'un projet et qu'on a des documents
             st.success("🧠 Logique d'existence de projet déclenchée !")
             response = project_analysis
         else:
@@ -327,14 +328,34 @@ def _process_question(question: str, vector_db) -> None:
                 st.success("📋 Logique de génération de liste déclenchée !")
                 response = list_analysis
             else:
-                # DEBUG: Afficher un aperçu du contexte
-                st.info(f"📝 **Contexte préparé :** {len(context)} caractères")
-                with st.expander("🔍 Aperçu du contexte"):
-                    st.text(context[:500] + "..." if len(context) > 500 else context)
-                
-                # 3. Génération de la réponse avec Mistral
-                with st.spinner("🤖 Génération de la réponse avec Mistral..."):
+                # 🔥 OPTIMISATION SÉMANTIQUE POUR LES QUESTIONS DE TYPE "connais-tu ..."
+                # Si la question contient "connais" et qu'il y a des documents pertinents, transmettre les extraits à Mistral
+                if re.search(r"connais[ -]?tu|connaissez[ -]?vous", question, re.IGNORECASE) and relevant_docs:
+                    keyword = None
+                    # Essayer d'extraire le mot clé (ex: COSERVICES)
+                    match = re.search(r"connais[ -]?tu\s+([a-zA-Z0-9\-]+)", question, re.IGNORECASE)
+                    if match:
+                        keyword = match.group(1).lower()
+                    # Filtrer les documents contenant le mot clé
+                    filtered_docs = []
+                    if keyword:
+                        for doc in relevant_docs:
+                            doc_text = doc.get('text', '') if isinstance(doc, dict) else str(doc)
+                            if keyword in doc_text.lower():
+                                filtered_docs.append(doc)
+                    else:
+                        filtered_docs = relevant_docs
+                    # Si on a des documents filtrés, préparer le contexte
+                    if filtered_docs:
+                        context = _prepare_context(filtered_docs)
+                    # Sinon, garder le contexte initial
                     response = _generate_mistral_response(question, context)
+                else:
+                    st.info(f"📝 **Contexte préparé :** {len(context)} caractères")
+                    with st.expander("🔍 Aperçu du contexte"):
+                        st.text(context[:500] + "..." if len(context) > 500 else context)
+                    with st.spinner("🤖 Génération de la réponse avec Mistral..."):
+                        response = _generate_mistral_response(question, context)
         
         # 4. Ajout à l'historique
         chat_entry = {
@@ -775,9 +796,6 @@ def _run_database_diagnostic(vector_db) -> None:
 
 def _analyze_project_existence(question: str, relevant_docs: List[Dict]) -> Optional[str]:
     """Analyse si la question porte sur l'existence d'un projet et génère une réponse intelligente."""
-    
-    import re
-    import os
     
     # Détecter les questions sur l'existence de projets
     existence_patterns = [
