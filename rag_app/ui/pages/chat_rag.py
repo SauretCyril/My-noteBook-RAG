@@ -536,7 +536,7 @@ Votre tier de service Mistral a atteint sa limite. Voici vos options :
 3. **Configurez Ollama local** (gratuit et illimité)
 
 💡 **Configuration Ollama recommandée :**
-- Téléchargez Ollama : https://ollama.ai
+- Téléchargez Ollama : https://olloma.ai
 - Installez Mistral : `ollama pull mistral:7b`
 - Démarrez : `ollama serve`
 - Changez le provider vers "Ollama Local"
@@ -742,15 +742,28 @@ def _run_database_diagnostic(vector_db) -> None:
         categories = set()
         projects = set()
         text_lengths = []
+        # Affichage des compteurs Annonces (si disponibles)
+        stats = getattr(vector_db, 'stats', {})
+        annonces_new = stats.get('annonces_new', None)
+        annonces_attente = stats.get('annonces_attente', None)
+        if annonces_new is not None or annonces_attente is not None:
+            st.markdown("#### 🟢 Statut des Annonces (indexation)")
+            st.info(f"🆕 Annonces nouvelles : **{annonces_new if annonces_new is not None else 0}**")
+            st.info(f"⏳ Annonces en attente : **{annonces_attente if annonces_attente is not None else 0}**")
         
         for doc in vector_db.documents[:10]:  # Examiner les 10 premiers
             metadata = doc.get('metadata', {})
             text = doc.get('text', '')[:200]
-            
             sources.add(metadata.get('source', 'N/A'))
             categories.add(metadata.get('category', 'N/A'))
             projects.add(metadata.get('project', 'N/A'))
             text_lengths.append(len(text))
+            # Affichage des anomalies détectées
+            anomalies = metadata.get('anomalies', [])
+            if anomalies:
+                with st.expander(f"🚨 Anomalies dans {metadata.get('source', 'N/A')}"):
+                    for anomaly in anomalies:
+                        st.error(f"{anomaly}")
         
         st.info(f"📁 **Sources uniques (échantillon) :** {len(sources)}")
         st.info(f"🏷️ **Catégories :** {len(categories)}")
@@ -1024,22 +1037,22 @@ def _extract_company_list(relevant_docs: List[Dict]) -> str:
             import re
             # Chercher patterns d'entreprises dans le contenu - patterns améliorés
             enterprise_patterns = [
-                r'entreprise[:\s]+([A-Z][A-Za-z\s&\-]+?)(?:\s|,|\.|$)',
-                r'société[:\s]+([A-Z][A-Za-z\s&\-]+?)(?:\s|,|\.|$)',
-                r'chez[:\s]+([A-Z][A-Za-z\s&\-]+?)(?:\s|,|\.|$)',
-                r'([A-Z][A-Za-z\s&\-]+?)\s+recrute',
-                r'Poste.*?chez[:\s]+([A-Z][A-Za-z\s&\-]+?)(?:\s|,|\.|$)',
-                r'candidature.*?chez\s+([A-Z][A-Za-z\s&\-]+?)(?:\s|,|\.|$)',
-                r'candidature.*?entreprise\s+([A-Z][A-Za-z\s&\-]+?)(?:\s|,|\.|$)',
-                r'lettre.*?motivation.*?([A-Z][A-Za-z\s&\-]+?)(?:\s|,|\.|$)',
-                r'postul.*?chez\s+([A-Z][A-Za-z\s&\-]+?)(?:\s|,|\.|$)'
+                r'entreprise[:\s]+([A-Z][a-zA-Z\s&\-]+?)(?:\s|,|\.|$)',
+                r'société[:\s]+([A-Z][a-zA-Z\s&\-]+?)(?:\s|,|\.|$)',
+                r'chez[:\s]+([A-Z][a-zA-Z\s&\-]+?)(?:\s|,|\.|$)',
+                r'([A-Z][a-zA-Z\s&\-]+?)\s+recrute',
+                r'Poste.*?chez[:\s]+([A-Z][a-zA-Z\s&\-]+?)(?:\s|,|\.|$)',
+                r'candidature.*?chez\s+([A-Z][a-zA-Z\s&\-]+?)(?:\s|,|\.|$)',
+                r'candidature.*?entreprise\s+([A-Z][a-zA-Z\s&\-]+?)(?:\s|,|\.|$)',
+                r'lettre.*?motivation.*?([A-Z][a-zA-Z\s&\-]+?)(?:\s|,|\.|$)',
+                r'postul.*?chez\s+([A-Z][a-zA-Z\s&\-]+?)(?:\s|,|\.|$)'
             ]
             
             for pattern in enterprise_patterns:
                 matches = re.findall(pattern, content, re.IGNORECASE)
                 if matches:
                     potential_name = matches[0].strip()
-                    # Filtrer les faux positifs
+                    # Filtrer les faux positifs courants
                     if (len(potential_name) > 3 and 
                         not potential_name.lower() in ['un', 'une', 'le', 'la', 'les', 'cette', 'cette entreprise', 'votre', 'notre', 'mon', 'ma', 'mes'] and
                         not potential_name.lower().startswith('cyril')):
@@ -1191,22 +1204,21 @@ def _extract_company_list(relevant_docs: List[Dict]) -> str:
 
 def _extract_company_list_exhaustive() -> str:
     """Extraction exhaustive des entreprises en cherchant dans toute la base vectorielle."""
-    
     try:
         # Accès à la base vectorielle depuis la session state
         vector_db = st.session_state.get('vector_db')
         if not vector_db:
             return "❌ Erreur: Base vectorielle non initialisée dans la session."
-        
+
         # Recherche exhaustive avec plusieurs termes pour capturer toutes les candidatures
         search_terms = [
             "candidature", "entreprise", "annonce", "todo", "etape", "repondue",
             "appel", "entretien", "refus", "validation", "hr", "rh", "poste"
         ]
-        
+
         st.info(f"🔍 Recherche exhaustive avec {len(search_terms)} termes...")
         all_docs = set()
-        
+
         # Recherche avec chaque terme
         for term in search_terms:
             try:
@@ -1216,28 +1228,26 @@ def _extract_company_list_exhaustive() -> str:
             except Exception as e:
                 st.warning(f"   ⚠️ Erreur recherche '{term}': {e}")
                 continue
-        
+
         st.success(f"📄 Total documents uniques collectés: {len(all_docs)}")
-        
+
         # Convertir en format Dict pour _extract_company_list
         docs_as_dict = []
         for doc in all_docs:
             if isinstance(doc, dict):
-                # Format déjà dict
                 doc_dict = {
                     'metadata': doc.get('metadata', {}),
                     'content': doc.get('content', doc.get('text', '')),
                     'text': doc.get('text', doc.get('content', ''))
                 }
             else:
-                # Format objet avec attributs
                 doc_dict = {
-                    'metadata': getattr(doc, 'metadata', {}) if hasattr(doc, 'metadata') else {},
-                    'content': getattr(doc, 'page_content', getattr(doc, 'text', str(doc))) if hasattr(doc, 'page_content') else getattr(doc, 'text', str(doc)),
-                    'text': getattr(doc, 'page_content', getattr(doc, 'text', str(doc))) if hasattr(doc, 'page_content') else getattr(doc, 'text', str(doc))
+                    'metadata': getattr(doc, 'metadata', {}),
+                    'content': getattr(doc, 'content', getattr(doc, 'text', str(doc))),
+                    'text': getattr(doc, 'text', getattr(doc, 'content', str(doc)))
                 }
             docs_as_dict.append(doc_dict)
-        
+
         # Filtrer pour ne garder que les candidatures avant d'appeler _extract_company_list
         candidature_docs = []
         for doc_dict in docs_as_dict:
@@ -1245,158 +1255,27 @@ def _extract_company_list_exhaustive() -> str:
             todo = metadata.get('todo', '')
             tags = metadata.get('tags', '')
             content = doc_dict.get('content', '')
-            source = metadata.get('source', '')
-            title = metadata.get('title', '')
-            
-            # Vérifier si c'est une candidature avec logique élargie
             is_application = False
-            detection_reason = ""
-            
             # Vérification 1: Le todo contient des mots-clés de candidature
-            if todo:
-                todo_lower = todo.lower()
-                candidature_keywords = ['repondue', 'etape', 'appel', 'entretien', 'refus', 'validation', 'hr', 'rh', 'candidature', 'postul']
-                if any(keyword in todo_lower for keyword in candidature_keywords):
-                    is_application = True
-                    detection_reason = f"Todo: {todo}"
-            
+            if todo and any(kw in todo.lower() for kw in ["candidature", "postul", "repondue", "etape", "entretien", "appel", "refus"]):
+                is_application = True
             # Vérification 2: Les tags contiennent "candidature"
-            if not is_application and tags:
-                if 'candidature' in tags.lower():
-                    is_application = True
-                    detection_reason = f"Tags: {tags}"
-            
+            if not is_application and tags and "candidature" in tags.lower():
+                is_application = True
             # Vérification 3: Le contenu mentionne explicitement une candidature
-            if not is_application and content:
-                content_lower = content.lower()
-                if ('candidature' in content_lower or 'postulé' in content_lower or 
-                    'cv envoyé' in content_lower or 'lettre de motivation' in content_lower or
-                    'postuler' in content_lower or 'demande d\'emploi' in content_lower):
-                    is_application = True
-                    detection_reason = "Contenu candidature"
-            
-            # Vérification 4: NOUVEAU - Analyse du nom de fichier et des patterns
-            if not is_application and source:
-                source_lower = source.lower()
-                # Lettres de motivation
-                if any(pattern in source_lower for pattern in ['_lm_', 'lettre', 'motivation', 'candidature']):
-                    is_application = True
-                    detection_reason = f"Fichier LM: {source}"
-                # Projets avec codes (M###, A###) qui sont souvent des candidatures
-                elif re.search(r'(?:^|_|-)[MA]\d{3}(?:_|-|$)', os.path.basename(source).upper()):  # Codes M### ou A### avec séparateurs
-                    is_application = True
-                    detection_reason = f"Projet candidature: {source}"
-                # CV avec entreprises spécifiques (pas les CV génériques)
-                elif '_cv_' in source_lower and not any(generic in source_lower for generic in ['cyrilsauret', 'general', 'template']):
-                    is_application = True
-                    detection_reason = f"CV spécifique: {source}"
-            
-            # Vérification 5: NOUVEAU - Analyse du titre
-            if not is_application and title:
-                title_lower = title.lower()
-                if any(pattern in title_lower for pattern in ['candidature', 'postul', 'demande', 'lettre de motivation', 'cv pour']):
-                    is_application = True
-                    detection_reason = f"Titre: {title}"
-            
-            # Vérification 6: NOUVEAU - Détection d'entreprises dans le nom de fichier
-            if not is_application and source:
-                # Recherche générique d'entreprises dans le nom de fichier SEULEMENT (pas le chemin)
-                filename_only = os.path.basename(source)
-                
-                # Patterns génériques pour détecter des noms d'entreprises dans le nom de fichier
-                enterprise_patterns = [
-                    r'_([A-Z][a-zA-Z\s&\-]+?)_',  # Entre underscores
-                    r'-([A-Z][a-zA-Z\s&\-]+?)-',  # Entre tirets
-                ]
-                
-                for pattern in enterprise_patterns:
-                    matches = re.findall(pattern, filename_only)
-                    for match in matches:
-                        # Filtrer pour garder seulement ce qui ressemble à des entreprises
-                        if (len(match) > 3 and 
-                            not match.lower() in ['cv', 'lm', 'lettre', 'motivation', 'data', 'new', 'doc', 'pdf', 'actions'] and
-                            not match.lower().startswith('cyril') and
-                            not re.match(r'^[A-Z]\d+$', match) and  # Éviter les codes projets
-                            any(c.isupper() for c in match)):  # Au moins une majuscule
-                            is_application = True
-                            detection_reason = f"Entreprise détectée: {match}"
-                            break
-                    if is_application:
-                        break
-            
+            if not is_application and content and "candidature" in content.lower():
+                is_application = True
+
             if is_application:
                 candidature_docs.append(doc_dict)
-                st.info(f"✅ Candidature détectée: {detection_reason}")
-            else:
-                # Debug pour comprendre pourquoi le document est rejeté
-                st.warning(f"❌ Document rejeté: {os.path.basename(source)} - Aucun critère candidature")
-        
-        st.info(f"✅ Documents candidature filtrés: {len(candidature_docs)}")
-        
-        if not candidature_docs:
-            return "❌ Aucun document de candidature trouvé dans la base vectorielle."
 
-        # Extraire la liste des entreprises (détails)
-        companies = {}
-        for doc in candidature_docs:
-            metadata = doc.get('metadata', {})
-            source = metadata.get('source', '')
-            content = doc.get('content', doc.get('text', ''))
-            company_name = metadata.get('entreprise', '')
-            if not company_name or company_name == 'N/A':
-                company_name = metadata.get('company', metadata.get('enterprise', ''))
-            project = metadata.get('project', '')
-            todo = metadata.get('todo', '')
-            if company_name and company_name != 'N/A' and len(company_name) > 2:
-                company_key = company_name
-                if company_key not in companies:
-                    companies[company_key] = {
-                        'nom': company_name,
-                        'postes': [],
-                        'statut_candidature': 'Non défini',
-                        'etape_actuelle': '',
-                        'sources': [],
-                        'dates': [],
-                        'projets': [],
-                        'details_todo': todo
-                    }
-                if source:
-                    source_name = os.path.basename(source)
-                    if source_name not in companies[company_key]['sources']:
-                        companies[company_key]['sources'].append(source_name)
-                if project and project not in companies[company_key]['projets']:
-                    companies[company_key]['projets'].append(project)
-                title = metadata.get('title', '')
-                if title and 'cv' not in title.lower() and title not in companies[company_key]['postes']:
-                    companies[company_key]['postes'].append(title)
-                date = metadata.get('date', '')
-                if date and date != 'N/A' and date not in companies[company_key]['dates']:
-                    companies[company_key]['dates'].append(date)
+        # Appeler la fonction d'extraction sur la liste filtrée
+        return _extract_company_list(candidature_docs)
 
-        import streamlit as st
-        st.markdown(f"🏢 **LISTE DES ENTREPRISES** ({len(companies)} trouvées)")
-        for i, (company_key, details) in enumerate(sorted(companies.items()), 1):
-            # Ligne compacte
-            with st.expander(f"{i}. {details['nom']}  |  {details['statut_candidature']}  |  {details['etape_actuelle']}"):
-                st.write(f"**Statut:** {details['statut_candidature']}")
-                if details['etape_actuelle']:
-                    st.write(f"**Étape:** {details['etape_actuelle']}")
-                if details['postes']:
-                    st.write(f"**Postes:** {', '.join(details['postes'])}")
-                if details['dates']:
-                    st.write(f"**Dernière activité:** {max(details['dates'])}")
-                if details['projets']:
-                    st.write(f"**Projets associés:** {', '.join(details['projets'])}")
-                if details['sources']:
-                    st.write(f"**Documents:** {len(details['sources'])} fichiers")
-                if details['details_todo'] and details['details_todo'].strip():
-                    st.write(f"**Todo:** {details['details_todo']}")
-        return ""
-    
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        return f"❌ Erreur lors de l'extraction exhaustive des entreprises: {str(e)}\n\nDétails:\n```\n{error_details}\n```"
+        return f"❌ Erreur lors de l'extraction exhaustive des entreprises: {str(e)}\n\nDétails:\n```{error_details}```"
 
 def _extract_company_from_project_code(source: str, content: str = "") -> str:
     """Extrait le nom d'entreprise depuis le code projet et le contenu de manière générique."""
@@ -1524,24 +1403,32 @@ def analyze_user_feedback_with_mistral():
 def _extract_generic_list(vector_db, list_type="entreprises", filter_dict=None):
     import streamlit as st
     items = set()
+    debug_count = 0
     for doc in getattr(vector_db, 'documents', []):
         metadata = doc.get('metadata', {})
+        # DEBUG : Afficher les métadonnées pour chaque document
+        if list_type == "entreprises":
+            debug_count += 1
+            st.write(f"--- Document {debug_count} ---")
+            st.write(f"entreprise: {metadata.get('entreprise')}")
+            st.write(f"company: {metadata.get('company')}")
+            st.write(f"metadata complet: {metadata}")
         # Filtrage par champs si demandé
         if filter_dict:
             match = True
             for k, v in filter_dict.items():
-                if metadata.get(k, "") != v:
+                if str(metadata.get(k, "")).strip().lower() != str(v).strip().lower():
                     match = False
                     break
             if not match:
                 continue
-        # Extraction selon le type
+        # Extraction selon le type, en utilisant uniquement les champs enrichis
         if list_type == "entreprises":
-            val = metadata.get('entreprise') or metadata.get('company') or metadata.get('enterprise')
+            val = metadata.get('entreprise') or metadata.get('company')
             if val and val != "N/A":
                 items.add(val)
         elif list_type == "annonces":
-            val = metadata.get('title') or metadata.get('annonce')
+            val = metadata.get('title')
             if val and val != "N/A":
                 items.add(val)
         elif list_type == "projets":
@@ -1549,10 +1436,9 @@ def _extract_generic_list(vector_db, list_type="entreprises", filter_dict=None):
             if val and val != "N/A":
                 items.add(val)
         elif list_type == "candidatures":
-            val = metadata.get('entreprise') or metadata.get('company') or metadata.get('enterprise')
+            val = metadata.get('statut_annonce')
             if val and val != "N/A":
                 items.add(val)
-        # Ajoute d'autres types si besoin
     st.markdown(f"### Liste complète ({list_type}) : {len(items)} trouvés")
     for i, item in enumerate(sorted(items), 1):
         st.write(f"{i}. {item}")
