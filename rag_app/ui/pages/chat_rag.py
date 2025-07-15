@@ -137,7 +137,7 @@ def _show_mistral_config() -> None:
                 st.markdown("""
                 **🚀 Installation rapide Ollama :**
                 
-                1. **Téléchargez Ollama :** https://ollama.ai
+                1. **Téléchargez Ollama :** https://olloma.ai
                 2. **Installez** et redémarrez votre terminal
                 3. **Téléchargez Mistral :**
                    ```bash
@@ -180,22 +180,30 @@ def _show_chat_interface(vector_db) -> None:
         key="user_question"
     )
     
-    col1, col2, col3 = st.columns([1, 1, 2])
-    
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 2, 2])
+
     with col1:
         if st.button("🚀 Poser la question", type="primary"):
             if question.strip():
                 _process_question(question, vector_db)
-                
+
     with col2:
         if st.button("🗑️ Vider historique"):
             st.session_state.chat_history = []
             st.rerun()
-    
+
     with col3:
         if st.button("🔧 Diagnostic base"):
             _run_database_diagnostic(vector_db)
-    
+
+    with col4:
+        if st.button("🏢 Liste complète entreprises"):
+            _extract_generic_list(vector_db, list_type="entreprises")
+
+    with col5:
+        if st.button("📋 Annonces répondue"):
+            _extract_generic_list(vector_db, list_type="annonces", filter_dict={"todo": "Répondue"})
+
     # Afficher l'historique de chat
     _display_chat_history()
 
@@ -737,7 +745,7 @@ def _run_database_diagnostic(vector_db) -> None:
         
         for doc in vector_db.documents[:10]:  # Examiner les 10 premiers
             metadata = doc.get('metadata', {})
-            text = doc.get('text', '')
+            text = doc.get('text', '')[:200]
             
             sources.add(metadata.get('source', 'N/A'))
             categories.add(metadata.get('category', 'N/A'))
@@ -1486,3 +1494,65 @@ def _extract_project_list(relevant_docs: list) -> str:
             st.write(f"**Dates:** {', '.join(details['dates']) if details['dates'] else 'N/A'}")
             st.write(f"**Sources:** {', '.join(details['sources']) if details['sources'] else 'N/A'}")
     return ""
+
+def analyze_user_feedback_with_mistral():
+    """Utilise Mistral pour analyser l'historique des interactions et proposer des améliorations."""
+    import json
+    feedback_file = "data/user_feedback.jsonl"
+    if not os.path.exists(feedback_file):
+        st.info("Aucun historique d'interaction trouvé.")
+        return
+
+    with open(feedback_file, "r", encoding="utf-8") as f:
+        interactions = [json.loads(line) for line in f if line.strip()]
+
+    # Préparer le contexte pour Mistral
+    context = "\n".join([f"Q: {entry['question']}\nR: {entry['response']}" for entry in interactions[-10:]])  # Les 10 dernières interactions
+
+    prompt = (
+        "Voici l'historique des questions et réponses entre l'utilisateur et le système RAG.\n"
+        "Analyse cet historique et propose des suggestions pour améliorer la pertinence des réponses, "
+        "identifier les points faibles, ou enrichir la base documentaire.\n\n"
+        f"{context}\n\nSuggestions IA :"
+    )
+
+    # Appel à Mistral (fonction existante ou API)
+    suggestions = _generate_mistral_response("Suggestions d'amélioration", prompt)
+    st.markdown("### 💡 Suggestions IA pour améliorer le système")
+    st.write(suggestions)
+
+def _extract_generic_list(vector_db, list_type="entreprises", filter_dict=None):
+    import streamlit as st
+    items = set()
+    for doc in getattr(vector_db, 'documents', []):
+        metadata = doc.get('metadata', {})
+        # Filtrage par champs si demandé
+        if filter_dict:
+            match = True
+            for k, v in filter_dict.items():
+                if metadata.get(k, "") != v:
+                    match = False
+                    break
+            if not match:
+                continue
+        # Extraction selon le type
+        if list_type == "entreprises":
+            val = metadata.get('entreprise') or metadata.get('company') or metadata.get('enterprise')
+            if val and val != "N/A":
+                items.add(val)
+        elif list_type == "annonces":
+            val = metadata.get('title') or metadata.get('annonce')
+            if val and val != "N/A":
+                items.add(val)
+        elif list_type == "projets":
+            val = metadata.get('project')
+            if val and val != "N/A":
+                items.add(val)
+        elif list_type == "candidatures":
+            val = metadata.get('entreprise') or metadata.get('company') or metadata.get('enterprise')
+            if val and val != "N/A":
+                items.add(val)
+        # Ajoute d'autres types si besoin
+    st.markdown(f"### Liste complète ({list_type}) : {len(items)} trouvés")
+    for i, item in enumerate(sorted(items), 1):
+        st.write(f"{i}. {item}")
