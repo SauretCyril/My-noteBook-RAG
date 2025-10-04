@@ -1,24 +1,52 @@
-# RAG Assistant - Fichiers à ignorer
+# ============================================================================
+# RAG Knowledge Assistant - Configuration Git
+# ============================================================================
 
-# Base vectorielle et données
-vector_db/
-data/processed/
-*.pkl
-*.index
-
-# Logs
-logs/
-*.log
-
-# Configuration privée
+# ======================== FICHIERS SENSIBLES ==============================
+# Variables d'environnement et configuration
 .env
+.env.local
+.env.production
+.env.staging
+config.ini
+secrets.json
+api_keys.txt
 *.key
 
-# Python
+# Fichiers de configuration utilisateur
+.current_kb
+user_settings.json
+
+# ======================== BASES DE DONNEES ================================
+# Bases vectorielles et index
+knowledge_bases/
+vector_db/
+vectordb/
+embeddings/
+*.db
+*.sqlite
+*.sqlite3
+chroma_db/
+faiss_index/
+*.index
+*.pkl
+*.pickle
+
+# ======================== DONNEES ======================================
+data/processed/
+data/raw/
+temp_data/
+cache/
+.cache/
+
+# ======================== PYTHON =======================================
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -36,18 +64,38 @@ wheels/
 .installed.cfg
 *.egg
 
-# Streamlit
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# ======================== STREAMLIT ====================================
 .streamlit/
 
-# IDE
+# ======================== LOGS ==========================================
+logs/
+*.log
+log_*.txt
+
+# ======================== IDE ET EDITEURS =============================
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS
+# ======================== SYSTEME ==================================
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# ======================== EXCEPTIONS (à garder) ================
+!requirements.txt
+!README.md
+!.gitignore
+!app.py
+!start.bat
+!.env.example
 
 # Archive (optionnel)
 archive/
