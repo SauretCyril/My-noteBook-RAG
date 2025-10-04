@@ -98,41 +98,7 @@ class VectorDatabase:
                 seen.add(part_clean)
         return "\n".join(unique_parts)
 
-    # def add_document(self, text: str, metadata: Dict[str, Any]) -> None:
-    #     """Ajoute un document à la base vectorielle avec enrichissement du texte, application des règles projet, détection d'anomalies et mise à jour des compteurs annonces."""
-    #     meta = dict(metadata)  # Copie pour ne pas modifier l'original
-    #     # Détection automatique de la catégorie 'Annonce' selon le contenu
-    #     if self._detect_annonce_category(text) and not meta.get('categorie'):
-    #         meta['categorie'] = 'Annonce'
-    #     # Construction du champ project à partir de dossier + '_' + description
-    #     dossier = meta.get('dossier', '').strip()
-    #     description = meta.get('description', '').strip()
-    #     if dossier and description:
-    #         meta['project'] = f"{dossier}_{description}"
-    #     # Application des règles selon le type de projet
-    #     meta = self._apply_project_rules(meta)
-    #     # Détection d'anomalies sur les métadonnées
-    #     anomalies = self._detect_metadata_anomalies(meta)
-    #     if anomalies:
-    #         meta['anomalies'] = anomalies
-    #     # Mise à jour des compteurs pour les annonces
-    #     cat_value = meta.get('categorie', '').strip().lower()
-    #     if cat_value == 'annonce':
-    #         etat = str(meta.get('Etat', '')).strip().lower()
-    #         todo = str(meta.get('Todo', '')).strip().lower()
-    #         if etat == 'new':
-    #             self.stats['annonces_new'] += 1
-    #         elif etat == 'todo' and 'répondue' in todo:
-    #             self.stats['annonces_attente'] += 1
-    #     enriched_text = self._build_enriched_text(text, meta)
-    #     document = {
-    #         'text': enriched_text,
-    #         'metadata': meta,
-    #         'timestamp': datetime.now().isoformat(),
-    #         'type': 'document'
-    #     }
-    #     self.documents.append(document)
-    #     self._update_vectors()
+   
     def _detect_metadata_anomalies(self, meta: Dict[str, Any]) -> list:
         """Détecte les anomalies dans les métadonnées d'un document .data.json et retourne une liste d'anomalies."""
         anomalies = []
@@ -429,3 +395,46 @@ class VectorDatabase:
         print(f"\nTotal documents : {total}")
         print(f"Documents sans entreprise : {missing}")
         print(f"Documents avec entreprise : {total - missing}")
+
+    def verify_indexation_by_data_json(self, directory: str, data_json: dict) -> None:
+        """Rapport détaillé sur la conformité des métadonnées indexées par rapport au .data.json du répertoire."""
+        print(f"\n=== Rapport d'indexation pour le répertoire : {directory} ===")
+        total = 0
+        conformes = 0
+        non_conformes = 0
+        for doc in self.documents:
+            meta = doc.get('metadata', {})
+            source = meta.get('source', '')
+            if source.startswith(directory):
+                total += 1
+                differences = []
+                missing_keys = []
+                extra_keys = []
+                # Vérifie chaque clé attendue
+                for key, value in data_json.items():
+                    indexed_value = meta.get(key)
+                    if indexed_value != value:
+                        differences.append(f"  - {key}: attendu '{value}', indexé '{indexed_value}'")
+                    if key not in meta:
+                        missing_keys.append(key)
+                # Cherche les clés en trop
+                for key in meta:
+                    if key not in data_json:
+                        extra_keys.append(key)
+                if not differences and not missing_keys:
+                    print(f"✅ {source} : conforme")
+                    conformes += 1
+                else:
+                    print(f"\n❌ {source} : non conforme")
+                    if differences:
+                        print("  Différences de valeurs :")
+                        for diff in differences:
+                            print(diff)
+                    if missing_keys:
+                        print(f"  Clés manquantes : {missing_keys}")
+                    if extra_keys:
+                        print(f"  Clés en trop : {extra_keys}")
+                    non_conformes += 1
+        print(f"\nRésumé : {total} fichiers indexés dans {directory}")
+        print(f"  - {conformes} conformes")
+        print(f"  - {non_conformes} non conformes")

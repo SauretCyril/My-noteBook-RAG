@@ -34,7 +34,7 @@ VISION_CONFIG = {
 
 # Configuration de traitement
 PROCESSING_CONFIG = {
-    "max_chunk_size": 500,
+    "max_chunk_size": 2048,
     "chunk_overlap": 50,
     "max_file_size_mb": 100
 }

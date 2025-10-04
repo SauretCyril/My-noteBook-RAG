@@ -670,6 +670,7 @@ def _execute_single_source_processing(source_path: str, options: Dict[str, Any],
     
     # Affichage des résultats
     _show_processing_results(results, batch_service)
+    
 
 def _execute_multi_source_processing(sources: list, options: Dict[str, Any], batch_service: BatchService) -> None:
     """Exécute le traitement sur plusieurs sources."""

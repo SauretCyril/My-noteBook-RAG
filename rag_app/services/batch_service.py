@@ -4,6 +4,7 @@ import os
 from typing import List, Tuple, Dict, Callable, Optional, Any
 from pathlib import Path
 import streamlit as st
+import json
 
 from ..core.vector_database import VectorDatabase
 from ..utils.file_utils import (
@@ -28,60 +29,68 @@ class BatchService:
         progress_callback: Optional[Callable] = None,
         enable_vision: bool = False
     ) -> Dict[str, Any]:
-        """Traite tous les fichiers d'un répertoire."""
-        
-        if not validate_directory_path(directory):
-            return {'error': f"Répertoire non accessible: {directory}"}
-        
-        # Trouver tous les fichiers
-        files_found = find_files_recursive(directory, file_extensions)
-        
+        """Traite tous les fichiers de tous les sous-répertoires avec leur .data.json respectif."""
         results = {
             'success': 0,
             'errors': 0,
             'skipped': 0,
             'errors_list': [],
             'images_processed': [],
-            'total_files': len(files_found)
+            'total_files': 0
         }
-        
-        total_files = len(files_found)
-        
-        for i, (file_path, annonce_data) in enumerate(files_found):
-            try:
-                if progress_callback:
-                    progress_callback(i, total_files, file_path)
-                    
-                # Vérifier la taille du fichier
-                if is_file_too_large(file_path, self.max_file_size_mb):
-                    results['skipped'] += 1
-                    results['errors_list'].append(f"{file_path}: Fichier trop volumineux")
-                    continue
-                    
-                # Traiter selon le type de fichier
-                file_ext = Path(file_path).suffix.lower()
-                
-                if file_ext in ['.pdf', '.txt']:
-                    success = self._process_document(file_path, annonce_data)
-                    if success:
-                        results['success'] += 1
-                    else:
-                        results['errors'] += 1
-                        
-                elif file_ext in ['.png', '.jpg', '.jpeg'] and enable_vision:
-                    img_result = self._process_image(file_path, annonce_data)
-                    if img_result:
-                        results['images_processed'].append(img_result)
-                        results['success'] += 1
+
+        # Parcours récursif de tous les sous-répertoires
+        for root, dirs, files in os.walk(directory):
+            # Cherche le .data.json dans le sous-répertoire courant
+            data_json_files = [f for f in files if f.endswith('.data.json')]
+            if data_json_files:
+                data_json_path = os.path.join(root, data_json_files[0])
+                try:
+                    with open(data_json_path, 'r', encoding='utf-8') as f:
+                        content = f.read().strip()
+                        if content:
+                            annonce_data = json.loads(content)
+                        else:
+                            print(f"⚠️ Fichier .data.json vide : {data_json_path}")
+                            annonce_data = {}
+                except Exception as e:
+                    print(f"⚠️ Erreur lecture .data.json : {data_json_path} : {e}")
+                    annonce_data = {}
+            else:
+                annonce_data = {}
+
+            # Fichiers à indexer dans ce sous-répertoire (hors .data.json)
+            files_found = [
+                os.path.join(root, f)
+                for f in files
+                if os.path.splitext(f)[1].lower() in file_extensions and not f.endswith('.data.json')
+            ]
+            results['total_files'] += len(files_found)
+
+            for i, file_path in enumerate(files_found):
+                try:
+                    if progress_callback:
+                        progress_callback(i, len(files_found), file_path)
+                    file_ext = Path(file_path).suffix.lower()
+                    if file_ext in ['.pdf', '.txt']:
+                        success = self._process_document(file_path, annonce_data)
+                        if success:
+                            results['success'] += 1
+                        else:
+                            results['errors'] += 1
+                    elif file_ext in ['.png', '.jpg', '.jpeg'] and enable_vision:
+                        img_result = self._process_image(file_path, annonce_data)
+                        if img_result:
+                            results['images_processed'].append(img_result)
+                            results['success'] += 1
+                        else:
+                            results['skipped'] += 1
                     else:
                         results['skipped'] += 1
-                else:
-                    results['skipped'] += 1
-                        
-            except Exception as e:
-                results['errors'] += 1
-                results['errors_list'].append(f"{file_path}: {str(e)}")
-                
+                except Exception as e:
+                    results['errors'] += 1
+                    results['errors_list'].append(f"{file_path}: {str(e)}")
+
         return results
         
     def _process_document(self, file_path: str, annonce_data: Dict) -> bool:
@@ -147,14 +156,24 @@ class BatchService:
         metadata = {
             'source': file_path,
             'title': annonce_data.get('title', file_name),
-            'category': annonce_data.get('category', 'Non classé'),
-            'project': annonce_data.get('project', 'Projet par défaut'),
-            'author': annonce_data.get('author', 'Inconnu'),
+            'categorie': annonce_data.get('categorie', annonce_data.get('category', 'inconnu')),
+            'project': annonce_data.get('project', annonce_data.get('dossier', 'Non spécifié')),
+            'author': annonce_data.get('author', 'Cyril Sauret'),
             'date': annonce_data.get('date', ''),
             'description': annonce_data.get('description', ''),
             'tags': annonce_data.get('tags', ''),
-            'priority': annonce_data.get('priority', 'normal'),
-            'status': annonce_data.get('status', 'active')
+            'todo': annonce_data.get('Todo', ''),
+            'status': annonce_data.get('Etat', '?'),
+            'entreprise': annonce_data.get('entreprise', 'inconnu'),
+            'commentaire': annonce_data.get('commentaire', ''),
+            'Date_from': annonce_data.get('Date_from', ''),
+            'Date_rep': annonce_data.get('Date_rep', ''),
+            'contact': annonce_data.get('contact', ''),
+            'id': annonce_data.get('id', ''),
+            'mail': annonce_data.get('mail', ''),
+
+
+            # Ajoute ici tous les autres champs nécessaires
         }
         
         return metadata
